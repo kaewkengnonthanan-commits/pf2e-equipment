@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PF2E Equipment Browser — Archives of Nethys</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gold: #c9a84c;
+    --gold-light: #e8c97a;
+    --gold-dim: #7a6030;
+    --parchment: #f5ead6;
+    --ink: #1a1208;
+    --ink-mid: #3a2a0e;
+    --blood: #8b1a1a;
+    --shadow: rgba(0,0,0,0.6);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0d0a06;
+    color: var(--parchment);
+    font-family: 'Crimson Pro', serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background:
+      radial-gradient(ellipse at 20% 50%, rgba(100,60,10,0.15) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 20%, rgba(80,40,5,0.1) 0%, transparent 50%),
+      repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(201,168,76,0.015) 2px, rgba(201,168,76,0.015) 4px);
+    pointer-events: none; z-index: 0;
+  }
+  .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
+
+  /* Header */
+  header { text-align: center; padding: 44px 24px 28px; }
+  .header-ornament { color: var(--gold-dim); font-size: 12px; letter-spacing: 8px; text-transform: uppercase; margin-bottom: 10px; opacity: 0.7; }
+  h1 { font-family: 'Cinzel', serif; font-size: clamp(26px, 5vw, 50px); font-weight: 900; color: var(--gold); text-shadow: 0 0 40px rgba(201,168,76,0.4), 0 2px 4px rgba(0,0,0,0.8); letter-spacing: 3px; margin-bottom: 6px; }
+  .subtitle { font-size: 14px; color: var(--gold-dim); letter-spacing: 4px; text-transform: uppercase; font-weight: 300; }
+  .source-badge { display:inline-flex; align-items:center; gap:6px; font-size:12px; color:rgba(201,168,76,0.45); margin-top:8px; letter-spacing:2px; }
+
+  .divider { display:flex; align-items:center; gap:16px; margin:20px 0; }
+  .divider::before,.divider::after { content:''; flex:1; height:1px; background:linear-gradient(to right,transparent,var(--gold-dim),transparent); }
+  .divider-icon { color:var(--gold); font-size:16px; }
+
+  /* Controls */
+  .controls {
+    background: linear-gradient(135deg,rgba(30,18,6,0.96),rgba(18,11,4,0.98));
+    border: 1px solid rgba(201,168,76,0.2);
+    border-radius: 4px;
+    padding: 18px 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.4),inset 0 1px 0 rgba(201,168,76,0.08);
+  }
+  .controls-row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  .search-wrap { flex:1; min-width:180px; position:relative; }
+  .search-wrap::before { content:'⚔'; position:absolute; left:11px; top:50%; transform:translateY(-50%); color:var(--gold-dim); font-size:13px; pointer-events:none; }
+  input[type="text"], select {
+    width:100%; background:rgba(0,0,0,0.45); border:1px solid rgba(201,168,76,0.18); border-radius:3px;
+    color:var(--parchment); font-family:'Crimson Pro',serif; font-size:16px; padding:9px 11px 9px 34px; outline:none; transition:border-color 0.2s,box-shadow 0.2s;
+  }
+  select { padding-left:11px; cursor:pointer; }
+  select option { background:#1a0f04; }
+  input[type="text"]:focus, select:focus { border-color:var(--gold-dim); box-shadow:0 0 0 2px rgba(201,168,76,0.1); }
+  ::placeholder { color:rgba(201,168,76,0.28); }
+  .btn {
+    background:linear-gradient(135deg,#8b6914,#c9a84c,#8b6914); border:none; border-radius:3px;
+    color:var(--ink); font-family:'Cinzel',serif; font-size:13px; font-weight:600; letter-spacing:1.5px;
+    padding:9px 20px; cursor:pointer; text-transform:uppercase; transition:all 0.2s;
+    box-shadow:0 2px 8px rgba(0,0,0,0.4); white-space:nowrap;
+  }
+  .btn:hover { filter:brightness(1.15); transform:translateY(-1px); box-shadow:0 4px 12px rgba(201,168,76,0.3); }
+  .btn:active { transform:translateY(0); }
+  .btn:disabled { opacity:0.45; cursor:not-allowed; transform:none; filter:none; }
+  .btn-ghost { background:transparent; border:1px solid rgba(201,168,76,0.25); color:var(--gold-dim); font-size:12px; padding:7px 14px; }
+  .btn-ghost:hover { border-color:var(--gold); color:var(--gold); background:rgba(201,168,76,0.05); filter:none; transform:none; }
+
+  /* Cats */
+  .cats { display:flex; gap:5px; flex-wrap:wrap; margin-top:12px; }
+  .cat-btn {
+    background:rgba(0,0,0,0.3); border:1px solid rgba(201,168,76,0.13); border-radius:2px;
+    color:rgba(201,168,76,0.45); font-family:'Crimson Pro',serif; font-size:13px;
+    padding:4px 11px; cursor:pointer; transition:all 0.15s;
+  }
+  .cat-btn:hover { border-color:rgba(201,168,76,0.35); color:var(--gold-dim); }
+  .cat-btn.active { background:rgba(201,168,76,0.13); border-color:var(--gold-dim); color:var(--gold); }
+
+  /* Status */
+  .status-bar { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; padding:0 2px; font-size:13px; color:var(--gold-dim); letter-spacing:.5px; }
+
+  /* Loading */
+  .loading-wrap { text-align:center; padding:70px 24px; }
+  .spinner { width:44px; height:44px; border:3px solid rgba(201,168,76,0.1); border-top-color:var(--gold); border-radius:50%; animation:spin 0.8s linear infinite; margin:0 auto 18px; }
+  @keyframes spin { to{transform:rotate(360deg)} }
+  .loading-text { font-family:'Cinzel',serif; font-size:12px; color:var(--gold-dim); letter-spacing:3px; text-transform:uppercase; animation:pulse 1.5s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:.4} 50%{opacity:1} }
+
+  /* Grid */
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(290px,1fr)); gap:14px; margin-bottom:28px; }
+
+  /* Card */
+  .item-card {
+    background:linear-gradient(145deg,rgba(26,18,8,0.96),rgba(14,9,3,0.98));
+    border:1px solid rgba(201,168,76,0.13); border-radius:4px; overflow:hidden;
+    transition:all 0.2s; cursor:pointer; animation:fadeIn 0.3s ease both;
+  }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+  .item-card:hover { border-color:rgba(201,168,76,0.38); box-shadow:0 4px 20px rgba(0,0,0,0.5),0 0 0 1px rgba(201,168,76,0.08); transform:translateY(-2px); }
+  .card-header { background:linear-gradient(135deg,rgba(201,168,76,0.07),rgba(201,168,76,0.02)); border-bottom:1px solid rgba(201,168,76,0.1); padding:11px 14px; display:flex; justify-content:space-between; align-items:flex-start; gap:8px; }
+  .item-name { font-family:'Cinzel',serif; font-size:14px; font-weight:600; color:var(--gold-light); line-height:1.3; }
+  .item-level { background:rgba(139,26,26,0.55); border:1px solid rgba(192,57,43,0.35); border-radius:2px; color:#e88; font-family:'Cinzel',serif; font-size:10px; font-weight:700; padding:2px 6px; white-space:nowrap; letter-spacing:.5px; }
+  .card-body { padding:11px 14px; }
+  .item-meta { display:flex; flex-wrap:wrap; gap:5px; margin-bottom:8px; }
+  .tag { background:rgba(201,168,76,0.07); border:1px solid rgba(201,168,76,0.13); border-radius:2px; color:rgba(201,168,76,0.55); font-size:10px; padding:2px 7px; letter-spacing:.5px; text-transform:uppercase; }
+  .tag.rarity-common { color:rgba(200,200,200,0.55); border-color:rgba(200,200,200,0.18); }
+  .tag.rarity-uncommon { color:rgba(82,196,82,0.65); border-color:rgba(82,196,82,0.22); background:rgba(82,196,82,0.05); }
+  .tag.rarity-rare { color:rgba(82,120,220,0.75); border-color:rgba(82,120,220,0.28); background:rgba(82,120,220,0.06); }
+  .tag.rarity-unique { color:rgba(180,80,220,0.75); border-color:rgba(180,80,220,0.28); background:rgba(180,80,220,0.06); }
+  .item-desc { font-size:13.5px; color:rgba(245,234,214,0.7); line-height:1.55; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+  .item-price { margin-top:9px; font-size:12px; color:var(--gold-dim); display:flex; align-items:center; gap:5px; }
+  .item-price::before { content:'◈'; font-size:9px; }
+
+  /* Empty */
+  .empty { text-align:center; padding:80px 24px; color:var(--gold-dim); }
+  .empty-icon { font-size:46px; margin-bottom:14px; opacity:.3; }
+  .empty h3 { font-family:'Cinzel',serif; font-size:17px; margin-bottom:8px; }
+  .empty p { font-size:15px; opacity:.55; }
+
+  /* Error */
+  .error-box { background:rgba(139,26,26,0.2); border:1px solid rgba(139,26,26,0.4); border-radius:4px; padding:14px 18px; color:#e88; font-size:15px; margin-bottom:14px; display:flex; align-items:center; gap:10px; }
+
+  /* Modal */
+  .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.87); z-index:100; display:flex; align-items:center; justify-content:center; padding:20px; animation:fadeOverlay 0.2s ease; }
+  @keyframes fadeOverlay { from{opacity:0} to{opacity:1} }
+  .modal-overlay.hidden { display:none; }
+  .modal { background:linear-gradient(145deg,#1a1208,#120d04); border:1px solid rgba(201,168,76,0.28); border-radius:6px; max-width:620px; width:100%; max-height:88vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,0.85); animation:slideUp 0.25s ease; }
+  @keyframes slideUp { from{transform:translateY(18px);opacity:0} to{transform:translateY(0);opacity:1} }
+  .modal-header { background:linear-gradient(135deg,rgba(201,168,76,0.1),rgba(201,168,76,0.03)); border-bottom:1px solid rgba(201,168,76,0.18); padding:18px 22px; display:flex; justify-content:space-between; align-items:flex-start; }
+  .modal-title { font-family:'Cinzel',serif; font-size:19px; color:var(--gold); font-weight:700; }
+  .modal-close { background:none; border:none; color:var(--gold-dim); font-size:21px; cursor:pointer; line-height:1; transition:color 0.15s; }
+  .modal-close:hover { color:var(--gold); }
+  .modal-body { padding:22px; }
+  .modal-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:18px; }
+  .modal-field label { display:block; font-family:'Cinzel',serif; font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--gold-dim); margin-bottom:4px; }
+  .modal-field span { font-size:15px; color:rgba(245,234,214,0.9); }
+  .modal-desc { font-size:15px; line-height:1.7; color:rgba(245,234,214,0.85); white-space:pre-wrap; }
+  .modal-loading { text-align:center; padding:36px; }
+  .aon-link { display:block; margin-top:18px; padding-top:14px; border-top:1px solid rgba(201,168,76,0.1); text-align:center; color:var(--gold-dim); font-size:12px; text-decoration:none; letter-spacing:1.5px; font-family:'Cinzel',serif; transition:color 0.15s; }
+  .aon-link:hover { color:var(--gold); }
+
+  /* Pagination */
+  .pagination { display:flex; justify-content:center; align-items:center; gap:6px; padding:14px 0 40px; flex-wrap:wrap; }
+  .page-btn { background:rgba(0,0,0,0.38); border:1px solid rgba(201,168,76,0.18); border-radius:3px; color:var(--gold-dim); font-family:'Cinzel',serif; font-size:11px; padding:6px 13px; cursor:pointer; transition:all 0.15s; }
+  .page-btn:hover:not(:disabled) { border-color:var(--gold-dim); color:var(--gold); }
+  .page-btn.active { background:rgba(201,168,76,0.13); border-color:var(--gold-dim); color:var(--gold); }
+  .page-btn:disabled { opacity:.28; cursor:not-allowed; }
+
+  ::-webkit-scrollbar { width:5px; }
+  ::-webkit-scrollbar-track { background:rgba(0,0,0,0.3); }
+  ::-webkit-scrollbar-thumb { background:var(--gold-dim); border-radius:3px; }
+
+  /* Toast */
+  .toast { position:fixed; bottom:24px; right:24px; background:rgba(26,18,8,0.97); border:1px solid rgba(201,168,76,0.3); border-radius:4px; padding:12px 18px; color:var(--gold-light); font-size:14px; z-index:200; animation:toastIn 0.3s ease; box-shadow:0 4px 20px rgba(0,0,0,0.5); }
+  @keyframes toastIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+
+  /* Random Modal */
+  .random-modal { max-width:760px; }
+  .random-header { background:linear-gradient(135deg,rgba(201,168,76,0.15),rgba(201,168,76,0.04)); border-bottom:1px solid rgba(201,168,76,0.22); padding:18px 22px; display:flex; justify-content:space-between; align-items:center; }
+  .random-title { font-family:'Cinzel',serif; font-size:20px; color:var(--gold); font-weight:700; display:flex; align-items:center; gap:10px; }
+  .random-subtitle { font-size:12px; color:var(--gold-dim); letter-spacing:2px; text-transform:uppercase; margin-top:3px; }
+  .random-body { padding:20px 22px; }
+  .random-roll-btn { background:linear-gradient(135deg,#6b1a1a,#a33,#6b1a1a); border:1px solid rgba(192,57,43,0.5); border-radius:3px; color:#ffcccc; font-family:'Cinzel',serif; font-size:12px; font-weight:600; letter-spacing:1.5px; padding:8px 18px; cursor:pointer; text-transform:uppercase; transition:all 0.2s; box-shadow:0 2px 8px rgba(0,0,0,0.4); }
+  .random-roll-btn:hover { filter:brightness(1.2); transform:translateY(-1px); box-shadow:0 4px 14px rgba(180,50,50,0.4); }
+  .random-item { background:linear-gradient(135deg,rgba(26,18,8,0.95),rgba(14,9,3,0.98)); border:1px solid rgba(201,168,76,0.16); border-radius:4px; padding:13px 16px; margin-bottom:10px; display:flex; gap:14px; align-items:flex-start; cursor:pointer; transition:all 0.2s; animation:fadeIn 0.3s ease both; }
+  .random-item:hover { border-color:rgba(201,168,76,0.4); box-shadow:0 3px 16px rgba(0,0,0,0.5); transform:translateX(3px); }
+  .random-num { font-family:'Cinzel',serif; font-size:22px; color:rgba(201,168,76,0.25); font-weight:900; min-width:30px; line-height:1; padding-top:2px; }
+  .random-info { flex:1; }
+  .random-item-name { font-family:'Cinzel',serif; font-size:15px; color:var(--gold-light); font-weight:600; margin-bottom:5px; }
+  .random-item-meta { display:flex; gap:5px; flex-wrap:wrap; margin-bottom:6px; }
+  .random-item-desc { font-size:13px; color:rgba(245,234,214,0.65); line-height:1.5; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .random-empty { text-align:center; padding:40px; color:var(--gold-dim); font-family:'Cinzel',serif; font-size:14px; letter-spacing:2px; opacity:0.6; }
+  .btn-random { background:linear-gradient(135deg,#5a1a6b,#9b3dbf,#5a1a6b); border:none; border-radius:3px; color:#eeccff; font-family:'Cinzel',serif; font-size:13px; font-weight:600; letter-spacing:1.5px; padding:9px 20px; cursor:pointer; text-transform:uppercase; transition:all 0.2s; box-shadow:0 2px 8px rgba(0,0,0,0.4); white-space:nowrap; }
+  .btn-random:hover { filter:brightness(1.15); transform:translateY(-1px); box-shadow:0 4px 12px rgba(155,61,191,0.4); }
+  .btn-random:disabled { opacity:0.45; cursor:not-allowed; transform:none; filter:none; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="header-ornament">✦ Archives of Nethys ✦</div>
+    <h1>Equipment Compendium</h1>
+    <div class="subtitle">Pathfinder 2nd Edition</div>
+    <div class="source-badge">🤖 Llama 3.3 70B via OpenRouter (Free) • aonprd.com</div>
+  </header>
+
+  <div class="divider"><span class="divider-icon">⚔</span></div>
+
+  <div class="controls">
+    <div class="controls-row">
+      <div class="search-wrap">
+        <input type="text" id="searchInput" placeholder="ค้นหา equipment..." />
+      </div>
+      <select id="rarityFilter">
+        <option value="">All Rarities</option>
+        <option value="common">Common</option>
+        <option value="uncommon">Uncommon</option>
+        <option value="rare">Rare</option>
+        <option value="unique">Unique</option>
+      </select>
+      <select id="levelFilter">
+        <option value="">All Levels</option>
+        <option value="0">Level 0</option>
+        <option value="1">Level 1</option>
+        <option value="2">Level 2</option>
+        <option value="3">Level 3</option>
+        <option value="4">Level 4</option>
+        <option value="5">Level 5</option>
+        <option value="6">Level 6</option>
+        <option value="7">Level 7</option>
+        <option value="8">Level 8</option>
+        <option value="9">Level 9</option>
+        <option value="10">Level 10+</option>
+      </select>
+      <button class="btn" id="loadBtn" onclick="loadEquipment()">⚡ Load</button>
+    </div>
+    <div class="cats" id="catBtns">
+      <button class="cat-btn active" onclick="setCategory(this,'')">All</button>
+      <button class="cat-btn" onclick="setCategory(this,'Weapon')">⚔ Weapons</button>
+      <button class="cat-btn" onclick="setCategory(this,'Armor')">🛡 Armor</button>
+      <button class="cat-btn" onclick="setCategory(this,'Shield')">🔰 Shields</button>
+      <button class="cat-btn" onclick="setCategory(this,'Alchemical')">⚗ Alchemical</button>
+      <button class="cat-btn" onclick="setCategory(this,'Consumable')">🧪 Consumables</button>
+      <button class="cat-btn" onclick="setCategory(this,'Held')">✋ Held Items</button>
+      <button class="cat-btn" onclick="setCategory(this,'Worn')">💍 Worn Items</button>
+      <button class="cat-btn" onclick="setCategory(this,'Wand')">🪄 Wands</button>
+      <button class="cat-btn" onclick="setCategory(this,'Scroll')">📜 Scrolls</button>
+      <button class="cat-btn" onclick="setCategory(this,'Adventuring Gear')">🎒 Gear</button>
+      <button class="cat-btn" onclick="setCategory(this,'Magical')">✨ Magical</button>
+    </div>
+  </div>
+
+  <div id="statusBar" class="status-bar" style="display:none">
+    <span id="statusText"></span>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn-random btn" id="randomBtn" onclick="openRandomModal()">🎲 Random 5</button>
+      <button class="btn-ghost btn" onclick="clearItems()">Clear</button>
+    </div>
+  </div>
+  <div id="errorBox" class="error-box" style="display:none"><span>⚠</span><span id="errorMsg"></span></div>
+  <div id="loadingWrap" class="loading-wrap" style="display:none">
+    <div class="spinner"></div>
+    <div class="loading-text" id="loadingText">Consulting the Archives...</div>
+  </div>
+  <div class="grid" id="grid"></div>
+  <div class="pagination" id="pagination"></div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay hidden" id="modalOverlay" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle">—</div>
+      <button class="modal-close" onclick="closeModalDirect()">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<!-- Random Modal -->
+<div class="modal-overlay hidden" id="randomOverlay" onclick="closeRandomModal(event)">
+  <div class="modal random-modal">
+    <div class="random-header">
+      <div>
+        <div class="random-title">🎲 Random Loot</div>
+        <div class="random-subtitle" id="randomSubtitle">Rolled from all items</div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <button class="random-roll-btn" onclick="rollRandom()">🎲 Roll Again</button>
+        <button class="modal-close" onclick="closeRandomDirect()">✕</button>
+      </div>
+    </div>
+    <div class="random-body" id="randomBody"></div>
+  </div>
+</div>
+
+<script>
+  const API_BASE = 'http://localhost:3000';
+  let allItems = [], filteredItems = [], currentPage = 1, selectedCategory = '';
+  const PER_PAGE = 24;
+
+  // ----- Filters -----
+  function setCategory(btn, cat) {
+    document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedCategory = cat;
+    applyFilters();
+  }
+
+  function applyFilters() {
+    const search = document.getElementById('searchInput').value.toLowerCase().trim();
+    const rarity = document.getElementById('rarityFilter').value.toLowerCase();
+    const levelVal = document.getElementById('levelFilter').value;
+    filteredItems = allItems.filter(item => {
+      const matchName = !search || item.name.toLowerCase().includes(search) || (item.desc||'').toLowerCase().includes(search);
+      const matchRarity = !rarity || (item.rarity||'').toLowerCase() === rarity;
+      const matchCat = !selectedCategory ||
+        (item.category||'').toLowerCase().includes(selectedCategory.toLowerCase()) ||
+        (item.type||'').toLowerCase().includes(selectedCategory.toLowerCase());
+      let matchLevel = true;
+      if (levelVal !== '') {
+        const lv = parseInt(item.level) || 0;
+        matchLevel = levelVal === '10' ? lv >= 10 : lv === parseInt(levelVal);
+      }
+      return matchName && matchRarity && matchCat && matchLevel;
+    });
+    currentPage = 1;
+    renderGrid();
+    updateStatus();
+  }
+
+  document.getElementById('searchInput').addEventListener('input', applyFilters);
+  document.getElementById('rarityFilter').addEventListener('change', applyFilters);
+  document.getElementById('levelFilter').addEventListener('change', applyFilters);
+
+  // ----- Load -----
+  let countdownInterval = null;
+
+  async function loadEquipment() {
+    const btn = document.getElementById('loadBtn');
+    btn.disabled = true;
+    setLoading(true, 'Consulting the Archives of Nethys...');
+    setError('');
+    try {
+      const res = await fetch(`${API_BASE}/api/equipment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ category: selectedCategory })
+      });
+      const data = await res.json();
+      if (res.status === 429 || data.error === 'QUOTA_EXCEEDED') {
+        setLoading(false);
+        startQuotaCountdown(60);
+        return;
+      }
+      if (!res.ok || !data.success) throw new Error(data.error || `Server error: ${res.status}`);
+      allItems = data.items;
+      applyFilters();
+      showToast(`✦ Loaded ${data.count} items`);
+    } catch(e) {
+      setError('❌ ' + e.message);
+    } finally {
+      setLoading(false);
+      if (!countdownInterval) btn.disabled = false;
+    }
+  }
+
+  function startQuotaCountdown(seconds) {
+    const btn = document.getElementById('loadBtn');
+    btn.disabled = true;
+    if (countdownInterval) clearInterval(countdownInterval);
+    let remaining = seconds;
+    const tick = () => {
+      setError('⏳ Gemini rate limit — กรุณารอ ' + remaining + ' วินาที แล้วระบบจะโหลดให้อัตโนมัติ');
+      btn.textContent = '⏳ ' + remaining + 's';
+      remaining--;
+      if (remaining < 0) {
+        clearInterval(countdownInterval);
+        countdownInterval = null;
+        btn.textContent = '⚡ Load';
+        btn.disabled = false;
+        setError('');
+        loadEquipment();
+      }
+    };
+    tick();
+    countdownInterval = setInterval(tick, 1000);
+  }
+
+  // ----- Render -----
+  function renderGrid() {
+    const grid = document.getElementById('grid');
+    const start = (currentPage-1)*PER_PAGE;
+    const page = filteredItems.slice(start, start+PER_PAGE);
+    if (!page.length) {
+      grid.innerHTML = `<div class="empty" style="grid-column:1/-1">
+        <div class="empty-icon">⚗</div>
+        <h3>No Items Found</h3>
+        <p>${allItems.length===0?'Click "Load" to fetch items from the Archives.':'Try adjusting your filters.'}</p>
+      </div>`;
+      document.getElementById('pagination').innerHTML='';
+      return;
+    }
+    grid.innerHTML = page.map((item, i) => `
+      <div class="item-card" onclick="openModal(${allItems.indexOf(item)})" style="animation-delay:${i*0.025}s">
+        <div class="card-header">
+          <div class="item-name">${esc(item.name)}</div>
+          <div class="item-level">Lv ${item.level??'—'}</div>
+        </div>
+        <div class="card-body">
+          <div class="item-meta">
+            <span class="tag rarity-${(item.rarity||'common').toLowerCase()}">${item.rarity||'Common'}</span>
+            ${item.category?`<span class="tag">${esc(item.category)}</span>`:''}
+            ${(item.traits||[]).slice(0,2).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}
+          </div>
+          <div class="item-desc">${esc(item.desc||'')}</div>
+          ${item.price?`<div class="item-price">${esc(item.price)}</div>`:''}
+        </div>
+      </div>
+    `).join('');
+    renderPagination();
+  }
+
+  function renderPagination() {
+    const total = Math.ceil(filteredItems.length/PER_PAGE);
+    if (total<=1){document.getElementById('pagination').innerHTML='';return;}
+    let html=`<button class="page-btn" onclick="goPage(${currentPage-1})" ${currentPage===1?'disabled':''}>‹</button>`;
+    for(let i=1;i<=total;i++){
+      if(i===1||i===total||Math.abs(i-currentPage)<=2)
+        html+=`<button class="page-btn ${i===currentPage?'active':''}" onclick="goPage(${i})">${i}</button>`;
+      else if(Math.abs(i-currentPage)===3)
+        html+=`<span style="color:var(--gold-dim);padding:0 3px">…</span>`;
+    }
+    html+=`<button class="page-btn" onclick="goPage(${currentPage+1})" ${currentPage===total?'disabled':''}>›</button>`;
+    document.getElementById('pagination').innerHTML=html;
+  }
+
+  function goPage(p){currentPage=p;renderGrid();window.scrollTo({top:0,behavior:'smooth'});}
+
+  function updateStatus(){
+    const bar=document.getElementById('statusBar');
+    if(!allItems.length){bar.style.display='none';return;}
+    bar.style.display='flex';
+    document.getElementById('statusText').textContent=`${filteredItems.length} of ${allItems.length} items`;
+  }
+
+  function clearItems(){allItems=[];filteredItems=[];document.getElementById('grid').innerHTML='';document.getElementById('pagination').innerHTML='';document.getElementById('statusBar').style.display='none';setError('');}
+
+  // ----- Modal -----
+  async function openModal(idx) {
+    const item = allItems[idx];
+    if(!item) return;
+    document.getElementById('modalTitle').textContent = item.name;
+    document.getElementById('modalBody').innerHTML = `<div class="modal-loading"><div class="spinner"></div></div>`;
+    document.getElementById('modalOverlay').classList.remove('hidden');
+
+    try {
+      const res = await fetch(`${API_BASE}/api/item-detail`, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({name:item.name, category:item.category})
+      });
+      const data = await res.json();
+      const d = data.success ? data.detail : item;
+      renderModal(d);
+    } catch {
+      renderModal(item);
+    }
+  }
+
+  function renderModal(d) {
+    document.getElementById('modalBody').innerHTML = `
+      <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:16px">
+        <span class="tag rarity-${(d.rarity||'common').toLowerCase()}">${d.rarity||'Common'}</span>
+        ${d.category?`<span class="tag">${esc(d.category)}</span>`:''}
+        ${d.type?`<span class="tag">${esc(d.type)}</span>`:''}
+        <span class="tag">Level ${d.level??'—'}</span>
+      </div>
+      ${d.traits&&d.traits.length?`<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:16px">${d.traits.map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>`:''}
+      <div class="modal-grid">
+        ${d.price?`<div class="modal-field"><label>Price</label><span style="color:var(--gold)">${esc(d.price)}</span></div>`:''}
+        ${d.bulk?`<div class="modal-field"><label>Bulk</label><span>${esc(d.bulk)}</span></div>`:''}
+        ${d.usage?`<div class="modal-field"><label>Usage</label><span>${esc(d.usage)}</span></div>`:''}
+        ${d.source?`<div class="modal-field"><label>Source</label><span>${esc(d.source)}</span></div>`:''}
+      </div>
+      ${d.activate?`<div style="margin-bottom:14px"><div style="font-family:'Cinzel',serif;font-size:10px;letter-spacing:2px;color:var(--gold-dim);margin-bottom:4px;text-transform:uppercase">Activate</div><div style="font-size:14px;color:rgba(245,234,214,.85)">${esc(d.activate)}</div></div>`:''}
+      <div><div style="font-family:'Cinzel',serif;font-size:10px;letter-spacing:2px;color:var(--gold-dim);margin-bottom:8px;text-transform:uppercase">Description</div>
+      <div class="modal-desc">${esc(d.desc||d.effect||'No description available.')}</div></div>
+      <a href="https://2e.aonprd.com/Equipment.aspx?Name=${encodeURIComponent(d.name)}" target="_blank" class="aon-link">View on Archives of Nethys ↗</a>
+    `;
+  }
+
+  function closeModal(e){if(e.target===document.getElementById('modalOverlay'))closeModalDirect();}
+  function closeModalDirect(){document.getElementById('modalOverlay').classList.add('hidden');}
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModalDirect();});
+
+  // ----- Utils -----
+  function setLoading(show,text=''){
+    document.getElementById('loadingWrap').style.display=show?'block':'none';
+    if(text)document.getElementById('loadingText').textContent=text;
+  }
+  function setError(msg){
+    const box=document.getElementById('errorBox');
+    box.style.display=msg?'flex':'none';
+    document.getElementById('errorMsg').textContent=msg;
+  }
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  function showToast(msg){
+    const t=document.createElement('div');t.className='toast';t.textContent=msg;
+    document.body.appendChild(t);setTimeout(()=>t.remove(),2800);
+  }
+
+  // ----- Random Modal -----
+  function openRandomModal() {
+    if (!filteredItems.length) { showToast('⚠ ไม่มีไอเทมให้สุ่ม — กด Load ก่อนนะ'); return; }
+    document.getElementById('randomOverlay').classList.remove('hidden');
+    rollRandom();
+  }
+
+  function rollRandom() {
+    const pool = filteredItems.length ? filteredItems : allItems;
+    const catLabel = selectedCategory || 'All Items';
+    document.getElementById('randomSubtitle').textContent =
+      `Rolled from ${pool.length} items · ${catLabel}`;
+
+    // Fisher-Yates shuffle, pick 5
+    const shuffled = [...pool];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    const picked = shuffled.slice(0, 5);
+
+    if (!picked.length) {
+      document.getElementById('randomBody').innerHTML = `<div class="random-empty">⚗ ไม่พบไอเทม</div>`;
+      return;
+    }
+
+    document.getElementById('randomBody').innerHTML = picked.map((item, i) => {
+      const idx = allItems.indexOf(item);
+      return `
+        <div class="random-item" onclick="closeRandomDirect();openModal(${idx})" style="animation-delay:${i*0.07}s">
+          <div class="random-num">${i+1}</div>
+          <div class="random-info">
+            <div class="random-item-name">${esc(item.name)} <span style="font-family:'Crimson Pro',serif;font-size:12px;color:rgba(201,168,76,0.45);font-weight:400">· Lv ${item.level??'—'}</span></div>
+            <div class="random-item-meta">
+              <span class="tag rarity-${(item.rarity||'common').toLowerCase()}">${item.rarity||'Common'}</span>
+              ${item.category?`<span class="tag">${esc(item.category)}</span>`:''}
+              ${(item.traits||[]).slice(0,2).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}
+            </div>
+            <div class="random-item-desc">${esc(item.desc||'—')}</div>
+          </div>
+          ${item.price?`<div style="font-size:12px;color:var(--gold-dim);white-space:nowrap;padding-top:2px">◈ ${esc(item.price)}</div>`:''}
+        </div>`;
+    }).join('') + `<div style="text-align:center;padding-top:4px;font-size:12px;color:rgba(201,168,76,0.3);letter-spacing:1px;font-family:'Cinzel',serif">คลิกที่ไอเทมเพื่อดูรายละเอียด</div>`;
+  }
+
+  function closeRandomModal(e) { if(e.target===document.getElementById('randomOverlay')) closeRandomDirect(); }
+  function closeRandomDirect() { document.getElementById('randomOverlay').classList.add('hidden'); }
+  document.addEventListener('keydown', e => { if(e.key==='Escape'){ closeModalDirect(); closeRandomDirect(); } });
+
+  // Auto-load
+  loadEquipment();
+</script>
+</body>
+</html>

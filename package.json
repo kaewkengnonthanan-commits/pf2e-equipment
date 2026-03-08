@@ -1,0 +1,14 @@
+{
+  "name": "pf2e-equipment-browser",
+  "version": "3.0.0",
+  "description": "PF2E Equipment Browser using OpenRouter (Free)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1"
+  }
+}
